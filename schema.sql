@@ -16,9 +16,8 @@ CREATE TABLE IF NOT EXISTS opportunities (
   total_fee_cents INT NOT NULL,
   plan_count INT NOT NULL,
   last_txp_date DATE,
-  days_since_plan INT GENERATED ALWAYS AS (
-    CASE WHEN last_txp_date IS NULL THEN NULL ELSE (CURRENT_DATE - last_txp_date) END
-  ) STORED,
+  -- NOTE: removed generated column (CURRENT_DATE is not immutable in Postgres generated columns).
+  -- We'll compute days_since_plan in SELECTs instead.
   top_codes TEXT[],
   status TEXT NOT NULL DEFAULT 'new',
   last_contacted_at TIMESTAMPTZ,
@@ -49,4 +48,4 @@ CREATE TABLE IF NOT EXISTS contact_logs (
 
 CREATE INDEX IF NOT EXISTS idx_opps_patnum ON opportunities(patnum);
 CREATE INDEX IF NOT EXISTS idx_opps_status ON opportunities(status);
-CREATE INDEX IF NOT EXISTS idx_opps_days ON opportunities(days_since_plan);
+CREATE INDEX IF NOT EXISTS idx_opps_last_txp ON opportunities(last_txp_date);

@@ -106,7 +106,7 @@ app.get('/opps', async (req,res) => {
   const limit = Math.min(Number(req.query.limit||100), 500);
 
   const params = [minValue, minDays];
-  let where = `total_fee_cents >= $1 AND COALESCE(days_since_plan,0) >= $2`;
+  let where = `o.total_fee_cents >= $1 AND COALESCE((CURRENT_DATE - o.last_txp_date),0) >= $2`;
   if(q){
     params.push(`%${q.toLowerCase()}%`);
     where += ` AND (LOWER(p.first_name) LIKE $${params.length} OR LOWER(p.last_name) LIKE $${params.length})`;
@@ -114,12 +114,13 @@ app.get('/opps', async (req,res) => {
 
   const { rows } = await pool.query(
     `SELECT o.id, o.patnum, p.first_name, p.last_name, p.phone, p.email,
-            o.total_fee_cents, o.plan_count, o.last_txp_date, o.days_since_plan,
+            o.total_fee_cents, o.plan_count, o.last_txp_date,
+            COALESCE((CURRENT_DATE - o.last_txp_date),0) AS days_since_plan,
             o.status, o.top_codes
      FROM opportunities o
      JOIN patients p ON p.patnum=o.patnum
      WHERE ${where}
-     ORDER BY (o.total_fee_cents*0.6 + COALESCE(o.days_since_plan,0)*100 + CASE WHEN p.phone IS NOT NULL THEN 10000 ELSE 0 END) DESC
+     ORDER BY (o.total_fee_cents*0.6 + COALESCE((CURRENT_DATE - o.last_txp_date),0)*100 + CASE WHEN p.phone IS NOT NULL THEN 10000 ELSE 0 END) DESC
      LIMIT ${limit}`,
     params
   );
